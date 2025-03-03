@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Stream with Click Interaction</title>
+</head>
+<body>
+  <h2>Live Stream</h2>
+  <img id="video" src="/video" style="width:100%;max-width:640px;" alt="Live Video Stream">
+  <script>
+    // Add click event listener to the video element.
+    const video = document.getElementById('video');
+    video.addEventListener('click', (event) => {
+      // Get click coordinates relative to the image.
+      const rect = video.getBoundingClientRect();
+      const x = Math.round(event.clientX - rect.left);
+      const y = Math.round(event.clientY - rect.top);
+      
+      // Send the click coordinates to the server.
+      fetch('/click', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ x: x, y: y })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Server response:", data);
+      })
+      .catch((error) => {
+        console.error("Error sending click:", error);
+      });
+    });
+  </script>
+</body>
+</html>
