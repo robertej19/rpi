@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Stream with Interactive Controls</title>
+  <title>Live Stream with Click Interaction and Color Buttons</title>
+  <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    /* The video takes the full browser width */
     #video {
       width: 100%;
       height: auto;
       display: block;
     }
+    /* Center the controls below the video */
     #controls {
       text-align: center;
       margin-top: 10px;
@@ -18,35 +21,29 @@
       font-size: 16px;
       margin: 5px;
     }
-    #status {
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
   <h2>Live Stream</h2>
+  <!-- The MJPEG stream -->
   <img id="video" src="/video" alt="Live Video Stream">
+  <!-- Color buttons -->
   <div id="controls">
     <button id="redButton">Red</button>
     <button id="greenButton">Green</button>
-    <button id="exitButton">Exit</button>
   </div>
-  <!-- Status message showing the selected color -->
-  <div id="status">No color selected</div>
   <script>
+    // Handle click events on the video.
     const video = document.getElementById('video');
-    const statusDiv = document.getElementById('status');
-    
     video.addEventListener('click', (event) => {
       const rect = video.getBoundingClientRect();
+      // Calculate scale factors based on natural size vs. displayed size.
       const scaleX = video.naturalWidth / video.clientWidth;
       const scaleY = video.naturalHeight / video.clientHeight;
       const x = Math.round((event.clientX - rect.left) * scaleX);
       const y = Math.round((event.clientY - rect.top) * scaleY);
       
+      // Send click coordinates to the server.
       fetch('/click', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,6 +54,7 @@
       .catch(error => console.error("Error sending click:", error));
     });
 
+    // Button for red color.
     document.getElementById('redButton').addEventListener('click', () => {
       fetch('/setcolor', {
         method: 'POST',
@@ -64,13 +62,11 @@
         body: JSON.stringify({ color: 'red' })
       })
       .then(response => response.json())
-      .then(data => {
-        console.log("Color changed:", data);
-        statusDiv.innerText = "Red selected";
-      })
+      .then(data => console.log("Color changed:", data))
       .catch(error => console.error("Error setting color:", error));
     });
 
+    // Button for green color.
     document.getElementById('greenButton').addEventListener('click', () => {
       fetch('/setcolor', {
         method: 'POST',
@@ -78,25 +74,8 @@
         body: JSON.stringify({ color: 'green' })
       })
       .then(response => response.json())
-      .then(data => {
-        console.log("Color changed:", data);
-        statusDiv.innerText = "Green selected";
-      })
+      .then(data => console.log("Color changed:", data))
       .catch(error => console.error("Error setting color:", error));
-    });
-
-    document.getElementById('exitButton').addEventListener('click', () => {
-      fetch('/exit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log("Exit command sent:", data);
-        // Optionally, you can update the status or redirect
-        statusDiv.innerText = "Exiting server...";
-      })
-      .catch(error => console.error("Error sending exit command:", error));
     });
   </script>
 </body>
