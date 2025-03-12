@@ -9,7 +9,7 @@
       height: auto;
       display: block;
     }
-    #controls {
+    #controls, #roi-controls, #gaussian-controls {
       text-align: center;
       margin-top: 10px;
     }
@@ -17,6 +17,9 @@
       padding: 10px 20px;
       font-size: 16px;
       margin: 5px;
+    }
+    input[type=range] {
+      width: 80%;
     }
     #status {
       margin-top: 10px;
@@ -32,14 +35,43 @@
   <div id="controls">
     <button id="redButton">Red</button>
     <button id="greenButton">Green</button>
+    <button id="bwButton">Black &amp; White</button>
+    <button id="colorButton">Color</button>
     <button id="exitButton">Exit</button>
   </div>
-  <!-- Status message showing the selected color -->
+  <div id="roi-controls">
+    <h3>Region of Interest</h3>
+    <label for="x1Slider">x1:</label>
+    <input type="range" id="x1Slider" min="0" max="1279" value="0">
+    <span id="x1Val">0</span>
+    <br>
+    <label for="x2Slider">x2:</label>
+    <input type="range" id="x2Slider" min="1" max="1280" value="1280">
+    <span id="x2Val">1280</span>
+    <br>
+    <label for="y1Slider">y1:</label>
+    <input type="range" id="y1Slider" min="0" max="719" value="0">
+    <span id="y1Val">0</span>
+    <br>
+    <label for="y2Slider">y2:</label>
+    <input type="range" id="y2Slider" min="1" max="720" value="720">
+    <span id="y2Val">720</span>
+  </div>
+  <div id="gaussian-controls">
+    <h3>Gaussian Blur Settings</h3>
+    <label for="kernelSlider">Kernel Size:</label>
+    <input type="range" id="kernelSlider" min="1" max="31" step="1" value="1">
+    <span id="kernelVal">1</span>
+    <br>
+    <label for="sigmaSlider">Sigma:</label>
+    <input type="range" id="sigmaSlider" min="0" max="10" step="0.1" value="0">
+    <span id="sigmaVal">0</span>
+  </div>
   <div id="status">No color selected</div>
   <script>
     const video = document.getElementById('video');
     const statusDiv = document.getElementById('status');
-    
+
     video.addEventListener('click', (event) => {
       const rect = video.getBoundingClientRect();
       const scaleX = video.naturalWidth / video.clientWidth;
@@ -85,6 +117,34 @@
       .catch(error => console.error("Error setting color:", error));
     });
 
+    document.getElementById('bwButton').addEventListener('click', () => {
+      fetch('/setcolor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color: 'black&white' })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Mode changed:", data);
+        statusDiv.innerText = "Black & White selected";
+      })
+      .catch(error => console.error("Error setting mode:", error));
+    });
+
+    document.getElementById('colorButton').addEventListener('click', () => {
+      fetch('/setcolor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color: 'color' })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Mode changed:", data);
+        statusDiv.innerText = "Color selected";
+      })
+      .catch(error => console.error("Error setting mode:", error));
+    });
+
     document.getElementById('exitButton').addEventListener('click', () => {
       fetch('/exit', {
         method: 'POST',
@@ -93,11 +153,86 @@
       .then(response => response.json())
       .then(data => {
         console.log("Exit command sent:", data);
-        // Optionally, you can update the status or redirect
         statusDiv.innerText = "Exiting server...";
       })
       .catch(error => console.error("Error sending exit command:", error));
     });
+
+    // ROI slider controls
+    const x1Slider = document.getElementById('x1Slider');
+    const x2Slider = document.getElementById('x2Slider');
+    const y1Slider = document.getElementById('y1Slider');
+    const y2Slider = document.getElementById('y2Slider');
+    const x1Val = document.getElementById('x1Val');
+    const x2Val = document.getElementById('x2Val');
+    const y1Val = document.getElementById('y1Val');
+    const y2Val = document.getElementById('y2Val');
+
+    // Gaussian slider controls
+    const kernelSlider = document.getElementById('kernelSlider');
+    const sigmaSlider = document.getElementById('sigmaSlider');
+    const kernelVal = document.getElementById('kernelVal');
+    const sigmaVal = document.getElementById('sigmaVal');
+
+    // Update displayed slider values and call debounced update functions.
+    x1Slider.addEventListener('input', () => { x1Val.innerText = x1Slider.value; debouncedUpdateROI(); });
+    x2Slider.addEventListener('input', () => { x2Val.innerText = x2Slider.value; debouncedUpdateROI(); });
+    y1Slider.addEventListener('input', () => { y1Val.innerText = y1Slider.value; debouncedUpdateROI(); });
+    y2Slider.addEventListener('input', () => { y2Val.innerText = y2Slider.value; debouncedUpdateROI(); });
+    
+    kernelSlider.addEventListener('input', () => { kernelVal.innerText = kernelSlider.value; debouncedUpdateGaussian(); });
+    sigmaSlider.addEventListener('input', () => { sigmaVal.innerText = sigmaSlider.value; debouncedUpdateGaussian(); });
+
+    // Debounce function to limit update frequency.
+    function debounce(func, delay) {
+      let timeoutId;
+      return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+      }
+    }
+
+    function updateROI() {
+      const x1 = parseInt(x1Slider.value);
+      const x2 = parseInt(x2Slider.value);
+      const y1 = parseInt(y1Slider.value);
+      const y2 = parseInt(y2Slider.value);
+
+      if (x1 < x2 && y1 < y2) {
+        fetch('/setroi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ x1: x1, x2: x2, y1: y1, y2: y2 })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("ROI updated:", data);
+          statusDiv.innerText = `ROI set: x1=${data.x1}, x2=${data.x2}, y1=${data.y1}, y2=${data.y2}`;
+        })
+        .catch(error => console.error("Error setting ROI:", error));
+      } else {
+        console.log("Invalid ROI: Ensure x1 < x2 and y1 < y2");
+      }
+    }
+    
+    function updateGaussian() {
+      const kernel = parseInt(kernelSlider.value);
+      const sigma = parseFloat(sigmaSlider.value);
+      fetch('/setgaussian', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kernel: kernel, sigma: sigma })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Gaussian parameters updated:", data);
+        statusDiv.innerText = `Gaussian: kernel=${data.kernel}, sigma=${data.sigma}`;
+      })
+      .catch(error => console.error("Error updating Gaussian parameters:", error));
+    }
+    
+    const debouncedUpdateROI = debounce(updateROI, 100);
+    const debouncedUpdateGaussian = debounce(updateGaussian, 100);
   </script>
 </body>
 </html>
