@@ -4,14 +4,39 @@
   <title>Live Stream with Interactive Controls</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    /* Fixed container for the video */
+    #video-container {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 95vw; /* 95% of viewport width */
+      z-index: 1000;
+      border: 2px solid #333;
+      background: #fff;
+      padding: 5px;
+    }
+    /* Ensure the video fills its container */
     #video {
       width: 100%;
       height: auto;
       display: block;
     }
-    #controls, #roi-controls, #gaussian-controls {
+    /* Main content is pushed down to avoid overlap with the fixed video.
+       Assuming a 16:9 aspect ratio, the video container height is ~ (95vw * 9/16),
+       plus extra space for padding/margin. */
+    #main-content {
+      margin-top: calc((95vw * 9 / 16) + 20px);
+      padding: 10px;
+    }
+    .box {
+      border: 2px solid #333;
+      padding: 10px;
+      margin: 10px;
+    }
+    .box h2 {
       text-align: center;
-      margin-top: 10px;
+      margin-top: 0;
     }
     button {
       padding: 10px 20px;
@@ -20,6 +45,7 @@
     }
     input[type=range] {
       width: 80%;
+      margin: 5px 0;
     }
     #status {
       margin-top: 10px;
@@ -27,47 +53,71 @@
       font-weight: bold;
       text-align: center;
     }
+    .slider-group {
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
-  <h2>Live Stream</h2>
-  <img id="video" src="/video" alt="Live Video Stream">
-  <div id="controls">
-    <button id="redButton">Red</button>
-    <button id="greenButton">Green</button>
-    <button id="bwButton">Black &amp; White</button>
-    <button id="colorButton">Color</button>
-    <button id="exitButton">Exit</button>
+  <!-- Fixed Video Container -->
+  <div id="video-container">
+    <img id="video" src="/video" alt="Live Video Stream">
   </div>
-  <div id="roi-controls">
-    <h3>Region of Interest</h3>
-    <label for="x1Slider">x1:</label>
-    <input type="range" id="x1Slider" min="0" max="1279" value="0">
-    <span id="x1Val">0</span>
-    <br>
-    <label for="x2Slider">x2:</label>
-    <input type="range" id="x2Slider" min="1" max="1280" value="1280">
-    <span id="x2Val">1280</span>
-    <br>
-    <label for="y1Slider">y1:</label>
-    <input type="range" id="y1Slider" min="0" max="719" value="0">
-    <span id="y1Val">0</span>
-    <br>
-    <label for="y2Slider">y2:</label>
-    <input type="range" id="y2Slider" min="1" max="720" value="720">
-    <span id="y2Val">720</span>
+
+  <!-- Main content container -->
+  <div id="main-content">
+    <h2>Live Stream</h2>
+
+    <!-- Selections box for buttons -->
+    <div class="box" id="selections-box">
+      <h2>Selections</h2>
+      <div id="controls">
+        <button id="redButton">Red</button>
+        <button id="greenButton">Green</button>
+        <button id="bwButton">Black &amp; White</button>
+        <button id="colorButton">Color</button>
+        <button id="exitButton">Exit</button>
+      </div>
+    </div>
+
+    <!-- Values box for sliders -->
+    <div class="box" id="values-box">
+      <h2>Values</h2>
+      <!-- ROI Controls -->
+      <div id="roi-controls" class="slider-group">
+        <h3>Region of Interest</h3>
+        <label for="x1Slider">x1:</label>
+        <input type="range" id="x1Slider" min="0" max="1279" value="0">
+        <span id="x1Val">0</span>
+        <br>
+        <label for="x2Slider">x2:</label>
+        <input type="range" id="x2Slider" min="1" max="1280" value="1280">
+        <span id="x2Val">1280</span>
+        <br>
+        <label for="y1Slider">y1:</label>
+        <input type="range" id="y1Slider" min="0" max="719" value="0">
+        <span id="y1Val">0</span>
+        <br>
+        <label for="y2Slider">y2:</label>
+        <input type="range" id="y2Slider" min="1" max="720" value="720">
+        <span id="y2Val">720</span>
+      </div>
+      <!-- Gaussian Controls -->
+      <div id="gaussian-controls" class="slider-group">
+        <h3>Gaussian Blur Settings</h3>
+        <label for="kernelSlider">Kernel Size:</label>
+        <input type="range" id="kernelSlider" min="1" max="31" step="1" value="1">
+        <span id="kernelVal">1</span>
+        <br>
+        <label for="sigmaSlider">Sigma:</label>
+        <input type="range" id="sigmaSlider" min="0" max="10" step="0.1" value="0">
+        <span id="sigmaVal">0</span>
+      </div>
+    </div>
+
+    <div id="status">No color selected</div>
   </div>
-  <div id="gaussian-controls">
-    <h3>Gaussian Blur Settings</h3>
-    <label for="kernelSlider">Kernel Size:</label>
-    <input type="range" id="kernelSlider" min="1" max="31" step="1" value="1">
-    <span id="kernelVal">1</span>
-    <br>
-    <label for="sigmaSlider">Sigma:</label>
-    <input type="range" id="sigmaSlider" min="0" max="10" step="0.1" value="0">
-    <span id="sigmaVal">0</span>
-  </div>
-  <div id="status">No color selected</div>
+
   <script>
     const video = document.getElementById('video');
     const statusDiv = document.getElementById('status');
